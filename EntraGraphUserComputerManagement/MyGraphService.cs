@@ -5,6 +5,11 @@ using System.Net.Http.Headers;
 using Microsoft.Identity.Client;
 using System.Linq;
 using System.IO;
+using System.Collections.Generic;
+using System.Linq.Expressions;
+using Microsoft.PowerPlatform.Dataverse.Client;
+using Microsoft.Xrm.Sdk.Query;
+using Microsoft.Xrm.Tooling.Connector;
 
 namespace EntraGraphUserComputerManagement
 {
@@ -16,6 +21,7 @@ namespace EntraGraphUserComputerManagement
         private static GraphServiceClient _graphServiceClient;
         private static readonly string BlobStorageConnectionString = "YourBlobStorageConnectionString";
         private static readonly string LogContainerName = "logs";
+        private static readonly string DataverseConnectionString = "YourDataverseConnectionString";
 
         /// <summary>
         /// Initializes the Microsoft Graph Service Client using the provided authentication details.
@@ -357,6 +363,70 @@ namespace EntraGraphUserComputerManagement
                     // Example: Upload to Azure Blob Storage
                     BlobStorageClient.UploadToBlobStorage(stream, LogContainerName, blobName: $"log_{Guid.NewGuid()}.csv");
                 }
+            }
+        }
+        /// <summary>
+        /// Gets the names of objects from Dataverse tables based on the create date of today.
+        /// </summary>
+        /// <returns>A dictionary containing the names of user and computer objects.</returns>
+        public static async Task<Dictionary<string, List<string>>> GetDataverseObjectsForToday()
+        {
+            try
+            {
+                var connectionString = DataverseConnectionString;
+
+                using (var service = new CrmServiceClient(connectionString))
+                {
+                    if (!service.IsReady)
+                    {
+                        // Handle connection error
+                        Console.WriteLine($"Error connecting to Dataverse: {service.LastCrmError}");
+                        return null;
+                    }
+
+                    // Query useraccount table for today's created users
+                    var createdUsers = service.RetrieveMultiple(new QueryExpression("useraccounts")
+                    {
+                        ColumnSet = new ColumnSet("name"),
+                        Criteria = new FilterExpression
+                        {
+                            Conditions =
+                        {
+                            new ConditionExpression("createdon", ConditionOperator.Today)
+                        }
+                        }
+                    });
+
+                    // Query computeraccounts table for today's created computers
+                    var createdComputers = service.RetrieveMultiple(new QueryExpression("computeraccounts")
+                    {
+                        ColumnSet = new ColumnSet("name"),
+                        Criteria = new FilterExpression
+                        {
+                            Conditions =
+                        {
+                            new ConditionExpression("createdon", ConditionOperator.Today)
+                        }
+                        }
+                    });
+
+                    var result = new Dictionary<string, List<string>>
+                {
+                    { "Users", createdUsers.Entities.Select(entity => entity.GetAttributeValue<string>("name")).ToList() },
+                    { "Computers", createdComputers.Entities.Select(entity => entity.GetAttributeValue<string>("name")).ToList() }
+                };
+
+                    // Example: Log Dataverse objects retrieval
+                    LogAction($"Retrieved Dataverse objects for today - Users: {string.Join(", ", result["Users"])}, Computers: {string.Join(", ", result["Computers"])}", "GetDataverseObjectsForToday");
+
+                    return result;
+                }
+            }
+            catch (Exception ex)
+            {
+                // Example: Log error during Dataverse object retrieval
+                LogAction($"Error retrieving Dataverse objects: {ex.Message}", "GetDataverseObjectsForToday");
+                return null;
             }
         }
     }
