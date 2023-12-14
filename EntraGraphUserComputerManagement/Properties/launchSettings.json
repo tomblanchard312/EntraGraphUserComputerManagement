@@ -1,0 +1,9 @@
+{
+  "profiles": {
+    "EntraGraphUserComputerManagement": {
+      "commandName": "Project",
+      "commandLineArgs": "--port 7222",
+      "launchBrowser": false
+    }
+  }
+}
