@@ -1,8 +1,6 @@
 # EntraGraphUserComputerManagement
 
-# Azure AD Graph API Helper
-
-This project provides a set of methods to interact with the Microsoft Graph API for Azure AD. It is designed as a starting point for developers who want to integrate Azure AD functionality into their applications.
+This project provides a set of methods to interact with the Microsoft Graph API for Azure AD and Microsoft Power Platform Dataverse. It is designed as a starting point for developers who want to integrate Azure AD and Dataverse functionality into their applications.
 
 ## Disclaimer
 
@@ -17,6 +15,8 @@ To use this project, follow these steps:
 3. Modify the methods in the `MyGraphService` class to suit your specific requirements.
 4. Configure the Azure Blob Storage connection string and other settings in the project.
 
+Ensure that you have the required NuGet packages installed, including `Microsoft.PowerPlatform.Dataverse.Client` and others mentioned in the project.
+
 ## Important Notes
 
 - The provided methods are placeholders and require customization to fit your application's logic and requirements.
@@ -25,10 +25,9 @@ To use this project, follow these steps:
 
 ## Dependencies
 
-This project utilizes the Microsoft Graph SDK and requires the Azure.Storage.Blobs NuGet package for Azure Blob Storage interaction.
-
-Install dependencies using the following commands:
+This project utilizes the Microsoft Graph SDK and Microsoft Power Platform Dataverse Client. Ensure you have the necessary NuGet packages installed, including:
 
 ```bash
-dotnet add package Microsoft.Graph -Version 4.0.0
-dotnet add package Azure.Storage.Blobs -Version 12.10.0
+Install-Package Microsoft.Graph
+Install-Package Microsoft.PowerPlatform.Dataverse.Client -Version 9.1.0.2
+Install-Package Azure.Storage.Blobs -Version 12.10.0
