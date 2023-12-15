@@ -352,7 +352,7 @@ namespace EntraGraphUserComputerManagement
         }
         private static void LogToAzureBlobStorage(string logEntry)
         {
-            // Example: Log to Azure Blob Storage
+            //  Log to Azure Blob Storage
             using (var stream = new MemoryStream())
             {
                 using (var writer = new StreamWriter(stream))
@@ -360,7 +360,7 @@ namespace EntraGraphUserComputerManagement
                     writer.Write(logEntry);
                     writer.Flush();
                     stream.Position = 0;
-                    // Example: Upload to Azure Blob Storage
+                    //  Upload to Azure Blob Storage
                     BlobStorageClient.UploadToBlobStorage(stream, LogContainerName, blobName: $"log_{Guid.NewGuid()}.csv");
                 }
             }
@@ -416,7 +416,7 @@ namespace EntraGraphUserComputerManagement
                     { "Computers", createdComputers.Entities.Select(entity => entity.GetAttributeValue<string>("name")).ToList() }
                 };
 
-                    // Example: Log Dataverse objects retrieval
+                    //  Log Dataverse objects retrieval
                     LogAction($"Retrieved Dataverse objects for today - Users: {string.Join(", ", result["Users"])}, Computers: {string.Join(", ", result["Computers"])}", "GetDataverseObjectsForToday");
 
                     return result;
@@ -424,9 +424,73 @@ namespace EntraGraphUserComputerManagement
             }
             catch (Exception ex)
             {
-                // Example: Log error during Dataverse object retrieval
+                //  Log error during Dataverse object retrieval
                 LogAction($"Error retrieving Dataverse objects: {ex.Message}", "GetDataverseObjectsForToday");
                 return null;
+            }
+        }
+
+        /// <summary>
+        /// Process Dataverse user names.
+        /// </summary>
+        /// <param name="userNames">List of user names.</param>
+        /// <returns>A task representing the asynchronous operation.</returns>
+        public static async Task ProcessDataverseUsers(List<string> userNames)
+        {
+            try
+            {
+                // Log the start of the user processing
+                LogAction("Processing Dataverse users...", "ProcessDataverseUsers");
+
+                // processing logic for Dataverse users
+                foreach (var userName in userNames)
+                {
+                    // Log each user name
+                    LogAction($"Processing user: {userName}", "ProcessDataverseUsers");
+
+                    // Perform additional processing based on your requirements
+                    // For example, call other Graph API methods, update records, etc.
+                }
+
+                // Log the completion of the user processing
+                LogAction("Dataverse users processed successfully.", "ProcessDataverseUsers");
+            }
+            catch (Exception ex)
+            {
+                // Log error during user processing
+                LogAction($"Error processing Dataverse users: {ex.Message}", "ProcessDataverseUsers");
+            }
+        }
+
+        /// <summary>
+        /// Process Dataverse computer names.
+        /// </summary>
+        /// <param name="computerNames">List of computer names.</param>
+        /// <returns>A task representing the asynchronous operation.</returns>
+        public static async Task ProcessDataverseComputers(List<string> computerNames)
+        {
+            try
+            {
+                //  Log the start of the computer processing
+                LogAction("Processing Dataverse computers...", "ProcessDataverseComputers");
+
+                // Your processing logic for Dataverse computers
+                foreach (var computerName in computerNames)
+                {
+                    //  Log each computer name
+                    LogAction($"Processing computer: {computerName}", "ProcessDataverseComputers");
+
+                    // Perform additional processing based on your requirements
+                    // For example, call other Graph API methods, update records, etc.
+                }
+
+                //  Log the completion of the computer processing
+                LogAction("Dataverse computers processed successfully.", "ProcessDataverseComputers");
+            }
+            catch (Exception ex)
+            {
+                //  Log error during computer processing
+                LogAction($"Error processing Dataverse computers: {ex.Message}", "ProcessDataverseComputers");
             }
         }
     }

@@ -21,7 +21,18 @@ namespace EntraGraphUserComputerManagement
         {
             log.LogInformation($"C# Timer trigger function executed at: {DateTime.Now}");
 
+            
+            // Call the method to get Dataverse objects for today
+            var dataverseObjects = await MyGraphService.GetDataverseObjectsForToday();
+
+            if (dataverseObjects != null)
+            {
+                // Use the retrieved data in other methods
+                await MyGraphService.ProcessDataverseUsers(dataverseObjects["Users"]);
+                await MyGraphService.ProcessDataverseComputers(dataverseObjects["Computers"]);
+            }
             // Call your methods here
+           //probably move these into ProcessDataverseUsers and ProcessDataverseComputers
             string newUserId = await MyGraphService.CreateUser();
             Console.WriteLine($"Newly created user ID: {newUserId}");
             await MyGraphService.ListUsers();
