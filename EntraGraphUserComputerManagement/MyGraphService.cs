@@ -10,7 +10,7 @@ using System.Linq.Expressions;
 using Microsoft.PowerPlatform.Dataverse.Client;
 using Microsoft.Xrm.Sdk.Query;
 using Microsoft.Xrm.Tooling.Connector;
-
+using Microsoft.SharePoint.Client;
 namespace EntraGraphUserComputerManagement
 {
     /// <summary>
@@ -19,9 +19,12 @@ namespace EntraGraphUserComputerManagement
     public static class MyGraphService
     {
         private static GraphServiceClient _graphServiceClient;
+        //TODO: Get values from appsettings/config or From AKV
         private static readonly string BlobStorageConnectionString = "YourBlobStorageConnectionString";
         private static readonly string LogContainerName = "logs";
         private static readonly string DataverseConnectionString = "YourDataverseConnectionString";
+        private static readonly string _sharePointSiteUrl = "YourSharePointSiteUrl";
+        private static readonly string _sharePointListName = "YourSharePointListName";
 
         /// <summary>
         /// Initializes the Microsoft Graph Service Client using the provided authentication details.
@@ -29,14 +32,14 @@ namespace EntraGraphUserComputerManagement
         /// <param name="clientId">The client ID of the Azure AD app.</param>
         /// <param name="clientSecret">The client secret of the Azure AD app.</param>
         /// <param name="tenantId">The ID of the Azure AD tenant.</param>
-        public static void InitializeGraphServiceClient(string clientId, string clientSecret, string tenantId)
+        public static async Task InitializeGraphServiceClientAsync(string clientId, string clientSecret, string tenantId)
         {
             var confidentialClientApplication = ConfidentialClientApplicationBuilder
                 .Create(clientId)
                 .WithClientSecret(clientSecret)
                 .WithAuthority(new Uri($"https://login.microsoftonline.com/{tenantId}"))
                 .Build();
-                LogAction("Graph Service Client initialized", "Initialization");
+            await LogActionAsync("Graph Service Client initialized", "Initialization");
 
 
             var authResult = confidentialClientApplication
@@ -61,7 +64,7 @@ namespace EntraGraphUserComputerManagement
         {
             try
             {
-                var newUser = new User
+                var newUser = new Microsoft.Graph.User
                 {
                     //todo: change these values to match your environment
                     AccountEnabled = true,
@@ -77,7 +80,7 @@ namespace EntraGraphUserComputerManagement
                 var createdUser = await _graphServiceClient.Users
                     .Request()
                     .AddAsync(newUser);
-                LogAction($"User created successfully. User Id: {createdUser.Id}", "CreateUser");
+                await LogActionAsync($"User created successfully. User Id: {createdUser.Id}", "CreateUser");
                 Console.WriteLine($"User created successfully. User Id: {createdUser.Id}");
 
                 // Return the ID of the newly created user
@@ -85,7 +88,7 @@ namespace EntraGraphUserComputerManagement
             }
             catch (Exception ex)
             {
-                LogAction($"Error creating user: {ex.Message}", "CreateUser");
+                await LogActionAsync($"Error creating user: {ex.Message}", "CreateUser");
                 Console.WriteLine($"Error creating user: {ex.Message}");
                 return null; // Or throw an exception
             }
@@ -117,7 +120,7 @@ namespace EntraGraphUserComputerManagement
                     .Request()
                     .GetAsync();
 
-                var user = members.OfType<User>().FirstOrDefault(u => u.UserPrincipalName.Equals(userPrincipalName, StringComparison.OrdinalIgnoreCase));
+                var user = members.OfType<Microsoft.Graph.User>().FirstOrDefault(u => u.UserPrincipalName.Equals(userPrincipalName, StringComparison.OrdinalIgnoreCase));
 
                 if (user != null)
                 {
@@ -141,7 +144,7 @@ namespace EntraGraphUserComputerManagement
                     .Request()
                     .GetAsync();
 
-                var groupMemberIds = groupMemberships.OfType<Group>().Select(g => g.Id).ToList();
+                var groupMemberIds = groupMemberships.OfType<Microsoft.Graph.Group>().Select(g => g.Id).ToList();
 
                 var usersInGroup = await _graphServiceClient.Users
                     .Request()
@@ -334,7 +337,7 @@ namespace EntraGraphUserComputerManagement
                 Console.WriteLine($"Error deleting computer from groups: {ex.Message}");
             }
         }
-        private static void LogAction(string logMessage, string serviceName)
+        private static async Task LogActionAsync(string logMessage, string serviceName)
         {
             try
             {
@@ -342,7 +345,7 @@ namespace EntraGraphUserComputerManagement
                 var logEntry = $"{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss},{serviceName},{logMessage}";
 
                 // Log to Azure Blob Storage
-                LogToAzureBlobStorage(logEntry);
+                await LogToAzureBlobStorageAsync(logEntry);
             }
             catch (Exception ex)
             {
@@ -350,7 +353,7 @@ namespace EntraGraphUserComputerManagement
                 Console.WriteLine($"Error logging action: {ex.Message}");
             }
         }
-        private static void LogToAzureBlobStorage(string logEntry)
+        private static async Task LogToAzureBlobStorageAsync(string logEntry)
         {
             //  Log to Azure Blob Storage
             using (var stream = new MemoryStream())
@@ -361,7 +364,7 @@ namespace EntraGraphUserComputerManagement
                     writer.Flush();
                     stream.Position = 0;
                     //  Upload to Azure Blob Storage
-                    BlobStorageClient.UploadToBlobStorage(stream, LogContainerName, blobName: $"log_{Guid.NewGuid()}.csv");
+                    await BlobStorageClient.UploadToBlobStorage(stream, LogContainerName, blobName: $"log_{Guid.NewGuid()}.csv");
                 }
             }
         }
@@ -369,7 +372,7 @@ namespace EntraGraphUserComputerManagement
         /// Gets the names of objects from Dataverse tables based on the create date of today.
         /// </summary>
         /// <returns>A dictionary containing the names of user and computer objects.</returns>
-        public static async Task<Dictionary<string, List<string>>> GetDataverseObjectsForToday()
+        public static async Task<Dictionary<string, List<string>>> GetDataverseObjectsForTodayAsync()
         {
             try
             {
@@ -417,7 +420,7 @@ namespace EntraGraphUserComputerManagement
                 };
 
                     //  Log Dataverse objects retrieval
-                    LogAction($"Retrieved Dataverse objects for today - Users: {string.Join(", ", result["Users"])}, Computers: {string.Join(", ", result["Computers"])}", "GetDataverseObjectsForToday");
+                    await LogActionAsync($"Retrieved Dataverse objects for today - Users: {string.Join(", ", result["Users"])}, Computers: {string.Join(", ", result["Computers"])}", "GetDataverseObjectsForToday");
 
                     return result;
                 }
@@ -425,11 +428,99 @@ namespace EntraGraphUserComputerManagement
             catch (Exception ex)
             {
                 //  Log error during Dataverse object retrieval
-                LogAction($"Error retrieving Dataverse objects: {ex.Message}", "GetDataverseObjectsForToday");
+                await LogActionAsync($"Error retrieving Dataverse objects: {ex.Message}", "GetDataverseObjectsForToday");
                 return null;
             }
         }
+        #region SharePoint
+        public static async Task<Dictionary<string, List<string>>> GetSharePointObjectsForToday()
+        {
+            try
+            {
+                using (var context = new ClientContext(_sharePointSiteUrl))
+                {
+                    var list = context.Web.Lists.GetByTitle(_sharePointListName);
 
+                    var query = new CamlQuery
+                    {
+                        ViewXml = $"<View><Query><Where><Geq><FieldRef Name='Created' /><Value Type='DateTime'><Today /></Value></Geq></Where></Query></View>"
+                    };
+
+                    var items = list.GetItems(query);
+                    context.Load(items);
+                    await context.ExecuteQueryAsync();
+
+                    var result = new Dictionary<string, List<string>>
+                {
+                    { "Users", items.OfType<Microsoft.SharePoint.Client.ListItem>().Select(item => item["UserName"].ToString()).ToList() },
+
+                    { "Computers", items.OfType<Microsoft.SharePoint.Client.ListItem>().Select(item => item["ComputerName"].ToString()).ToList() }
+                };
+
+                    await LogActionAsync($"Retrieved SharePoint objects for today - Users: {string.Join(", ", result["Users"])}, Computers: {string.Join(", ", result["Computers"])}", "GetSharePointObjectsForToday");
+
+                    return result;
+                }
+            }
+            catch (Exception ex)
+            {
+                await LogActionAsync($"Error retrieving SharePoint objects: {ex.Message}", "GetSharePointObjectsForToday");
+                return null;
+            }
+        }
+        public static async Task ProcessSharePointUsers(List<string> userNames)
+        {
+            try
+            {
+                await LogActionAsync("Processing SharePoint users...", "ProcessSharePointUsers");
+
+                foreach (var userName in userNames)
+                {
+                    await LogActionAsync($"Processing user: {userName}", "ProcessSharePointUsers");
+                    // Additional processing logic
+                }
+
+                await LogActionAsync("SharePoint users processed successfully.", "ProcessSharePointUsers");
+            }
+            catch (Exception ex)
+            {
+                await LogActionAsync($"Error processing SharePoint users: {ex.Message}", "ProcessSharePointUsers");
+            }
+        }
+        /// <summary>
+        /// Process SharePoint computer names.
+        /// </summary>
+        /// <param name="computerNames">List of computer names.</param>
+        /// <returns>A task representing the asynchronous operation.</returns>
+        public static async Task ProcessSharePointComputers(List<string> computerNames)
+        {
+            try
+            {
+                // Example: Log the start of the computer processing
+                await LogActionAsync("Processing SharePoint computers...", "ProcessSharePointComputers");
+
+                // Your processing logic for SharePoint computers
+                foreach (var computerName in computerNames)
+                {
+                    // Example: Log each computer name
+                   await LogActionAsync($"Processing computer: {computerName}", "ProcessSharePointComputers");
+
+                    // Perform additional processing based on your requirements
+                    // For example, call other Graph API methods, update records, etc.
+                }
+
+                // Example: Log the completion of the computer processing
+                await LogActionAsync("SharePoint computers processed successfully.", "ProcessSharePointComputers");
+            }
+            catch (Exception ex)
+            {
+                // Example: Log error during computer processing
+                await LogActionAsync($"Error processing SharePoint computers: {ex.Message}", "ProcessSharePointComputers");
+            }
+        }
+
+        #endregion SharePoint
+        #region DataVerse
         /// <summary>
         /// Process Dataverse user names.
         /// </summary>
@@ -440,25 +531,25 @@ namespace EntraGraphUserComputerManagement
             try
             {
                 // Log the start of the user processing
-                LogAction("Processing Dataverse users...", "ProcessDataverseUsers");
+                await LogActionAsync("Processing Dataverse users...", "ProcessDataverseUsers");
 
                 // processing logic for Dataverse users
                 foreach (var userName in userNames)
                 {
                     // Log each user name
-                    LogAction($"Processing user: {userName}", "ProcessDataverseUsers");
+                    await LogActionAsync($"Processing user: {userName}", "ProcessDataverseUsers");
 
                     // Perform additional processing based on your requirements
                     // For example, call other Graph API methods, update records, etc.
                 }
 
                 // Log the completion of the user processing
-                LogAction("Dataverse users processed successfully.", "ProcessDataverseUsers");
+                await LogActionAsync("Dataverse users processed successfully.", "ProcessDataverseUsers");
             }
             catch (Exception ex)
             {
                 // Log error during user processing
-                LogAction($"Error processing Dataverse users: {ex.Message}", "ProcessDataverseUsers");
+                await LogActionAsync($"Error processing Dataverse users: {ex.Message}", "ProcessDataverseUsers");
             }
         }
 
@@ -472,26 +563,27 @@ namespace EntraGraphUserComputerManagement
             try
             {
                 //  Log the start of the computer processing
-                LogAction("Processing Dataverse computers...", "ProcessDataverseComputers");
+                await LogActionAsync("Processing Dataverse computers...", "ProcessDataverseComputers");
 
                 // Your processing logic for Dataverse computers
                 foreach (var computerName in computerNames)
                 {
                     //  Log each computer name
-                    LogAction($"Processing computer: {computerName}", "ProcessDataverseComputers");
+                    await LogActionAsync($"Processing computer: {computerName}", "ProcessDataverseComputers");
 
                     // Perform additional processing based on your requirements
                     // For example, call other Graph API methods, update records, etc.
                 }
 
                 //  Log the completion of the computer processing
-                LogAction("Dataverse computers processed successfully.", "ProcessDataverseComputers");
+                await LogActionAsync("Dataverse computers processed successfully.", "ProcessDataverseComputers");
             }
             catch (Exception ex)
             {
                 //  Log error during computer processing
-                LogAction($"Error processing Dataverse computers: {ex.Message}", "ProcessDataverseComputers");
+                await LogActionAsync($"Error processing Dataverse computers: {ex.Message}", "ProcessDataverseComputers");
             }
         }
+       #endregion DataVerse
     }
 }

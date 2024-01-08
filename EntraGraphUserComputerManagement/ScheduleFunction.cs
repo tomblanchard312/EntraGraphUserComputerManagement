@@ -23,13 +23,13 @@ namespace EntraGraphUserComputerManagement
 
             
             // Call the method to get Dataverse objects for today
-            var dataverseObjects = await MyGraphService.GetDataverseObjectsForToday();
+            var dataverseObjects = MyGraphService.GetDataverseObjectsForTodayAsync();
 
             if (dataverseObjects != null)
             {
                 // Use the retrieved data in other methods
-                await MyGraphService.ProcessDataverseUsers(dataverseObjects["Users"]);
-                await MyGraphService.ProcessDataverseComputers(dataverseObjects["Computers"]);
+                await MyGraphService.ProcessDataverseUsers((await dataverseObjects)["Users"]);
+                await MyGraphService.ProcessDataverseComputers((await dataverseObjects)["Computers"]);
             }
             // Call your methods here
            //probably move these into ProcessDataverseUsers and ProcessDataverseComputers
