@@ -9,7 +9,7 @@
     <PackageReference Include="Microsoft.Graph" Version="5.44.0" />
     <PackageReference Include="Microsoft.Identity.Client" Version="4.58.1" />
     <PackageReference Include="Microsoft.NET.Sdk.Functions" Version="4.2.0" />
-    <PackageReference Include="Microsoft.PowerPlatform.Dataverse.Client" Version="1.1.17" />
+    <PackageReference Include="Microsoft.PowerPlatform.Dataverse.Client" Version="1.1.22" />
     <PackageReference Include="Microsoft.SharePoint.Client" Version="14.0.4762.1000" />
     <PackageReference Include="Microsoft.Sharepoint.Client.Runtime" Version="15.0.4711.1000" />
     <PackageReference Include="Microsoft.SharePointOnline.CSOM" Version="16.1.24614.12000" />
